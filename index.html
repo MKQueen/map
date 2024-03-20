@@ -6,12 +6,19 @@
     <meta name="viewport" content="initial-scale=1.0, user-scalable=no, width=device-width">
     <title>地理信息</title>
     <link rel="stylesheet" href="https://a.amap.com/jsapi_demos/static/demo-center/css/demo-center.css" />
+    <script type="text/javascript" src="https://webapi.amap.com/maps?v=2.0&key=9741c5cc37b8e8ddd3a60418344b57b3"></script>
     <style>
         html,
         body,
         #container {
             height: 100%;
             width: 100%;
+        }
+        .amap-logo{
+            display: none!important;
+        }
+        .amap-copyright{
+            display: none!important;
         }
 
         .amap-icon img,
@@ -50,17 +57,36 @@
             overflow-y:scroll;
             height: 100vh;
         }
+        .div-card{
+            padding: 10px;
+            position: absolute;
+            z-index: 999;
+            left: 2%;
+            top: 2%;
+            background: white;
+            border-radius: 5px;
+        }
     </style>
 </head>
 
 <body>
 <div id="container"></div>
+<div class="div-card">
+    <div class="input-item">
+        <input type="button" class="btn" value="开始动画" id="start" onclick="startAnimation()"/>
+        <input type="button" class="btn" value="暂停动画" id="pause" onclick="pauseAnimation()"/>
+    </div>
+    <div class="input-item">
+        <input type="button" class="btn" value="继续动画" id="resume" onclick="resumeAnimation()"/>
+        <input type="button" class="btn" value="停止动画" id="stop" onclick="stopAnimation()"/>
+    </div>
+</div>
 <div class="input-card">
     <label style="color:grey">地理数据</label>
     <h1>地理位置信息</h1>
     <p id="location"></p>
 </div>
-<script type="text/javascript" src="https://webapi.amap.com/maps?v=2.0&key=9741c5cc37b8e8ddd3a60418344b57b3"></script>
+
 <script type="text/javascript">
     function wgs84togcj02(lng, lat) {
         var PI = 3.14159265358979324;
@@ -110,10 +136,142 @@
     }
 
 
+
+
     var marker, map = new AMap.Map("container", {
         resizeEnable: true,
         center: [116.397428, 39.90923],
-        zoom: 13
+        zoom: 13,
+        pitch: 50,
+        rotation: -15,
+        viewMode:'3D', //开启3D视图,默认为关闭
+    });
+
+    // JSAPI2.0 使用覆盖物动画必须先加载动画插件
+    AMap.plugin('AMap.MoveAnimation', function(){
+        var marker, lineArr = [
+            [
+                116.43044253499448,
+                39.93104979765724
+            ],
+            [
+                116.43042853516891,
+                39.93233802279036
+            ],
+            [
+                116.4375824462258,
+                39.932370228108084
+            ],
+            [
+                116.43755445219574,
+                39.930180234018366
+            ],
+            [
+                116.43756845202137,
+                39.927818394968824
+            ],
+            [
+                116.43758245184682,
+                39.92559604472788
+            ],
+            [
+                116.43454448961745,
+                39.925553100051246
+            ],
+            [
+                116.43427849292488,
+                39.92640125242423
+            ],
+            [
+                116.43418049414367,
+                39.927109827363495
+            ],
+            [
+                116.4341664943181,
+                39.92795796045053
+            ],
+            [
+                116.43409649518804,
+                39.92896711777621
+            ],
+            [
+                116.43398449657894,
+                39.92960051743441
+            ],
+            [
+                116.43356450180289,
+                39.930019202126715
+            ],
+            [
+                116.43244451572588,
+                39.93002993759771
+            ],
+            [
+                116.43240251624917,
+                39.9303305301095
+            ],
+            [
+                116.43224851816342,
+                39.93053450284745
+            ],
+            [
+                116.4321785190333,
+                39.93214479259859
+            ]
+        ];
+
+        marker = new AMap.Marker({
+            map: map,
+            position: [116.43044253499448, 39.93104979765724],
+            icon: "https://a.amap.com/jsapi_demos/static/demo-center-v2/car.png",
+            offset: new AMap.Pixel(-13, -26),
+        });
+
+        // 绘制轨迹
+        var polyline = new AMap.Polyline({
+            map: map,
+            path: lineArr,
+            showDir:true,
+            strokeColor: "#28F",  //线颜色
+            // strokeOpacity: 1,     //线透明度
+            strokeWeight: 6,      //线宽
+            // strokeStyle: "solid"  //线样式
+        });
+
+        var passedPolyline = new AMap.Polyline({
+            map: map,
+            strokeColor: "#AF5",  //线颜色
+            strokeWeight: 6,      //线宽
+        });
+
+
+        marker.on('moving', function (e) {
+            passedPolyline.setPath(e.passedPath);
+            map.setCenter(e.target.getPosition(),true)
+        });
+
+        map.setFitView();
+
+        window.startAnimation = function startAnimation () {
+            marker.moveAlong(lineArr, {
+                // 每一段的时长
+                duration: 3000,//可根据实际采集时间间隔设置
+                // JSAPI2.0 是否延道路自动设置角度在 moveAlong 里设置
+                autoRotation: true,
+            });
+        };
+
+        window.pauseAnimation = function () {
+            marker.pauseMove();
+        };
+
+        window.resumeAnimation = function () {
+            marker.resumeMove();
+        };
+
+        window.stopAnimation = function () {
+            marker.stopMove();
+        };
     });
 
 
