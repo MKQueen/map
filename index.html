@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no, width=device-width">
+    <title>地理信息</title>
+    <link rel="stylesheet" href="https://a.amap.com/jsapi_demos/static/demo-center/css/demo-center.css" />
+    <style>
+        html,
+        body,
+        #container {
+            height: 100%;
+            width: 100%;
+        }
+
+        .amap-icon img,
+        .amap-marker-content img {
+            width: 25px;
+            height: 34px;
+        }
+
+        .marker {
+            position: absolute;
+            top: -20px;
+            right: -118px;
+            color: #fff;
+            padding: 4px 10px;
+            box-shadow: 1px 1px 1px rgba(10, 10, 10, .2);
+            white-space: nowrap;
+            font-size: 12px;
+            font-family: "";
+            background-color: #25A5F7;
+            border-radius: 3px;
+        }
+
+        .input-card {
+            width: 18rem;
+            z-index: 170;
+        }
+
+        .input-card .btn {
+            margin-right: .8rem;
+        }
+
+        .input-card .btn:last-child {
+            margin-right: 0;
+        }
+        #location{
+            overflow-y:scroll;
+            height: 100vh;
+        }
+    </style>
+</head>
+
+<body>
+<div id="container"></div>
+<div class="input-card">
+    <label style="color:grey">地理数据</label>
+    <h1>地理位置信息</h1>
+    <p id="location"></p>
+</div>
+<script type="text/javascript" src="https://webapi.amap.com/maps?v=2.0&key=9741c5cc37b8e8ddd3a60418344b57b3"></script>
+<script type="text/javascript">
+    function wgs84togcj02(lng, lat) {
+        var PI = 3.14159265358979324;
+        var a = 6378245.0;
+        var ee = 0.00669342162296594323;
+
+        function transformLat(x, y) {
+            var ret = -100.0 + 2.0 * x + 3.0 * y + 0.2 * y * y + 0.1 * x * y + 0.2 * Math.sqrt(Math.abs(x));
+            ret += (20.0 * Math.sin(6.0 * x * PI) + 20.0 * Math.sin(2.0 * x * PI)) * 2.0 / 3.0;
+            ret += (20.0 * Math.sin(y * PI) + 40.0 * Math.sin(y / 3.0 * PI)) * 2.0 / 3.0;
+            ret += (160.0 * Math.sin(y / 12.0 * PI) + 320 * Math.sin(y * PI / 30.0)) * 2.0 / 3.0;
+            return ret;
+        }
+
+        function transformLng(x, y) {
+            var ret = 300.0 + x + 2.0 * y + 0.1 * x * x + 0.1 * x * y + 0.1 * Math.sqrt(Math.abs(x));
+            ret += (20.0 * Math.sin(6.0 * x * PI) + 20.0 * Math.sin(2.0 * x * PI)) * 2.0 / 3.0;
+            ret += (20.0 * Math.sin(x * PI) + 40.0 * Math.sin(x / 3.0 * PI)) * 2.0 / 3.0;
+            ret += (150.0 * Math.sin(x / 12.0 * PI) + 300.0 * Math.sin(x / 30.0 * PI)) * 2.0 / 3.0;
+            return ret;
+        }
+
+        function outOfChina(lng, lat) {
+            if (lng < 72.004 || lng > 137.8347) return true;
+            if (lat < 0.8293 || lat > 55.8271) return true;
+            return false;
+        }
+
+        function transform(lng, lat) {
+            if (outOfChina(lng, lat)) {
+                return { lng: lng, lat: lat };
+            }
+            var dLat = transformLat(lng - 105.0, lat - 35.0);
+            var dLng = transformLng(lng - 105.0, lat - 35.0);
+            var radLat = lat / 180.0 * PI;
+            var magic = Math.sin(radLat);
+            magic = 1 - ee * magic * magic;
+            var sqrtMagic = Math.sqrt(magic);
+            dLat = (dLat * 180.0) / ((a * (1 - ee)) / (magic * sqrtMagic) * PI);
+            dLng = (dLng * 180.0) / (a / sqrtMagic * Math.cos(radLat) * PI);
+            var mgLat = lat + dLat;
+            var mgLng = lng + dLng;
+            return { lng: mgLng, lat: mgLat };
+        }
+
+        return transform(lng, lat);
+    }
+
+
+    var marker, map = new AMap.Map("container", {
+        resizeEnable: true,
+        center: [116.397428, 39.90923],
+        zoom: 13
+    });
+
+
+
+    // 创建空数组来存储经纬度信息
+    var coordinates = [];
+
+    // 定义一个函数来获取地理位置
+    function getLocation() {
+        // 检查浏览器是否支持Geolocation API
+        if (navigator.geolocation) {
+            // 使用Geolocation API获取当前位置
+            navigator.geolocation.getCurrentPosition(showPosition);
+        } else {
+            // 如果浏览器不支持Geolocation API，则提示用户
+            document.getElementById("location").innerHTML = "该浏览器不支持获取地理位置信息。";
+        }
+    }
+
+    // 定义一个函数来显示地理位置信息
+    function showPosition(position) {
+        // 获取经纬度信息
+        var latitude = position.coords.latitude;
+        var longitude = position.coords.longitude;
+        var gcj02 = wgs84togcj02(longitude, latitude);
+        console.log('GCJ02 坐标：', gcj02.lng, gcj02.lat);
+
+        // console.log("经度: " + longitude +  "纬度: " + latitude)
+        console.log("经度: " + gcj02.lng +  "纬度: " + gcj02.lat)
+        marker = new AMap.Marker({
+            icon: "//a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-default.png",
+            position: [gcj02.lng, gcj02.lat],
+            offset: new AMap.Pixel(-13, -30)
+        });
+        marker.setMap(map);
+
+        // 在页面上显示经纬度信息
+        document.getElementById("location").innerHTML = "经度: " + longitude + "<br>纬度: " + latitude;
+
+        // 将经纬度信息添加到数组中
+        // coordinates.push([longitude, latitude]);
+        coordinates.push([gcj02.lng, gcj02.lat]);
+
+        // 每次添加新的坐标后，生成并显示更新后的GeoJSON
+        generateGeoJSON();
+
+        // 每10秒获取一次地理位置信息
+        setTimeout(getLocation, 3000);
+    }
+
+    // 初始化页面时获取地理位置信息
+    getLocation();
+
+    // 定义一个函数来生成GeoJSON
+    function generateGeoJSON() {
+        // 创建FeatureCollection对象
+        var featureCollection = {
+            "type": "FeatureCollection",
+            "features": []
+        };
+
+        // 循环遍历经纬度数组，并为每个点创建Feature对象
+        for (var i = 0; i < coordinates.length; i++) {
+            var point = {
+                "type": "Feature",
+                "geometry": {
+                    "type": "Point",
+                    "coordinates": coordinates[i]
+                },
+                "properties": {
+                    "index": i + 1  // 可选：添加索引属性
+                }
+            };
+            // 将Feature对象添加到FeatureCollection中
+            featureCollection.features.push(point);
+        }
+
+        // 将FeatureCollection对象转换为GeoJSON字符串
+        var geoJSONString = JSON.stringify(featureCollection);
+
+        // 在页面上显示GeoJSON字符串
+        document.getElementById("location").innerHTML += "<br>GeoJSON: " + geoJSONString;
+    }
+</script>
+</body>
+
+</html>
