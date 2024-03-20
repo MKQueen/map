@@ -7,6 +7,7 @@
     <title>地理信息</title>
     <link rel="stylesheet" href="https://a.amap.com/jsapi_demos/static/demo-center/css/demo-center.css" />
     <script type="text/javascript" src="https://webapi.amap.com/maps?v=2.0&key=9741c5cc37b8e8ddd3a60418344b57b3"></script>
+    <script src="https://unpkg.com/@turf/turf/turf.min.js"></script>
     <style>
         html,
         body,
@@ -55,7 +56,8 @@
         }
         #location{
             overflow-y:scroll;
-            height: 100vh;
+            height: 86vh;
+            /*display: none;*/
         }
         .div-card{
             padding: 10px;
@@ -79,6 +81,10 @@
     <div class="input-item">
         <input type="button" class="btn" value="继续动画" id="resume" onclick="resumeAnimation()"/>
         <input type="button" class="btn" value="停止动画" id="stop" onclick="stopAnimation()"/>
+    </div>
+    <div class="input-item">
+        <input type="button" class="btn" value="生成轨迹"  onclick="onTrajectory()"/>
+        <input type="button" class="btn" value="停止动画"  onclick="stopAnimation()"/>
     </div>
 </div>
 <div class="input-card">
@@ -137,7 +143,7 @@
 
 
 
-
+    var geoJSONString = null
     var marker, map = new AMap.Map("container", {
         resizeEnable: true,
         center: [116.397428, 39.90923],
@@ -147,103 +153,18 @@
         viewMode:'3D', //开启3D视图,默认为关闭
     });
 
+
     // JSAPI2.0 使用覆盖物动画必须先加载动画插件
     AMap.plugin('AMap.MoveAnimation', function(){
-        var marker, lineArr = [
-            [
-                116.43044253499448,
-                39.93104979765724
-            ],
-            [
-                116.43042853516891,
-                39.93233802279036
-            ],
-            [
-                116.4375824462258,
-                39.932370228108084
-            ],
-            [
-                116.43755445219574,
-                39.930180234018366
-            ],
-            [
-                116.43756845202137,
-                39.927818394968824
-            ],
-            [
-                116.43758245184682,
-                39.92559604472788
-            ],
-            [
-                116.43454448961745,
-                39.925553100051246
-            ],
-            [
-                116.43427849292488,
-                39.92640125242423
-            ],
-            [
-                116.43418049414367,
-                39.927109827363495
-            ],
-            [
-                116.4341664943181,
-                39.92795796045053
-            ],
-            [
-                116.43409649518804,
-                39.92896711777621
-            ],
-            [
-                116.43398449657894,
-                39.92960051743441
-            ],
-            [
-                116.43356450180289,
-                39.930019202126715
-            ],
-            [
-                116.43244451572588,
-                39.93002993759771
-            ],
-            [
-                116.43240251624917,
-                39.9303305301095
-            ],
-            [
-                116.43224851816342,
-                39.93053450284745
-            ],
-            [
-                116.4321785190333,
-                39.93214479259859
-            ]
-        ];
-
+        var marker, lineArr = null
+        var passedPolyline = ''
+        var polyline = ''
         marker = new AMap.Marker({
             map: map,
-            position: [116.43044253499448, 39.93104979765724],
+            position: [116.43645977040207,39.93135384478578],
             icon: "https://a.amap.com/jsapi_demos/static/demo-center-v2/car.png",
             offset: new AMap.Pixel(-13, -26),
         });
-
-        // 绘制轨迹
-        var polyline = new AMap.Polyline({
-            map: map,
-            path: lineArr,
-            showDir:true,
-            strokeColor: "#28F",  //线颜色
-            // strokeOpacity: 1,     //线透明度
-            strokeWeight: 6,      //线宽
-            // strokeStyle: "solid"  //线样式
-        });
-
-        var passedPolyline = new AMap.Polyline({
-            map: map,
-            strokeColor: "#AF5",  //线颜色
-            strokeWeight: 6,      //线宽
-        });
-
 
         marker.on('moving', function (e) {
             passedPolyline.setPath(e.passedPath);
@@ -272,7 +193,43 @@
         window.stopAnimation = function () {
             marker.stopMove();
         };
+
+        window.onTrajectory = function () {
+            console.log(geoJSONString)
+            console.log(JSON.parse(geoJSONString))
+            let pointsGeojson = JSON.parse(geoJSONString)
+            const pointCoords = pointsGeojson.features.map(feature => feature.geometry.coordinates);
+            const line = turf.lineString(pointCoords);
+            console.log(line.geometry.coordinates)
+
+
+           lineArr = line.geometry.coordinates;
+
+
+
+            // 绘制轨迹
+            polyline = new AMap.Polyline({
+                map: map,
+                path: lineArr,
+                showDir:true,
+                strokeColor: "#28F",  //线颜色
+                // strokeOpacity: 1,     //线透明度
+                strokeWeight: 6,      //线宽
+                // strokeStyle: "solid"  //线样式
+            });
+
+            passedPolyline = new AMap.Polyline({
+                map: map,
+                strokeColor: "#AF5",  //线颜色
+                strokeWeight: 6,      //线宽
+            });
+
+        }
     });
+
+    // function onTrajectory() {
+    //     console.log(geoJSONString)
+    // }
 
 
 
@@ -319,7 +276,7 @@
         generateGeoJSON();
 
         // 每10秒获取一次地理位置信息
-        setTimeout(getLocation, 3000);
+        setTimeout(getLocation, 5000);
     }
 
     // 初始化页面时获取地理位置信息
@@ -350,7 +307,7 @@
         }
 
         // 将FeatureCollection对象转换为GeoJSON字符串
-        var geoJSONString = JSON.stringify(featureCollection);
+        geoJSONString = JSON.stringify(featureCollection);
 
         // 在页面上显示GeoJSON字符串
         document.getElementById("location").innerHTML += "<br>GeoJSON: " + geoJSONString;
